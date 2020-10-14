@@ -39,3 +39,9 @@ def test_can_only_deallocate_allocated_lines():
     batch, unallocated_line = make_batch_n_line(SKU, QUANTITY, SMALLER)
     batch.deallocate(unallocated_line)
     assert batch.available_qty == QUANTITY
+
+def test_allocation_is_idempotent():
+    batch, line = make_batch_n_line(SKU, QUANTITY, SMALLER)
+    batch.allocate(line)
+    batch.allocate(line)
+    assert batch.available_qty == QUANTITY - SMALLER
