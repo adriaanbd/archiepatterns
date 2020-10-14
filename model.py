@@ -19,7 +19,7 @@ class Batch:
         self.eta = eta
 
     def _can_allocate(self, line: OrderLine):
-        return self.qty > line.qty
+        return self.qty >= line.qty and self.sku == line.sku
 
     def allocate(self, line: OrderLine):
         if self._can_allocate(line):
