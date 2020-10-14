@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import NewType, Optional, Set, TypeVar
+from typing import NewType, Optional, Set, TypeVar, List
 from datetime import date
 
 Qty = NewType('Qty', int)
@@ -33,7 +33,7 @@ class Batch:
         self._allocations: Set[OrderLine] = set()
 
     def allocate(self, line: OrderLine) -> None:
-        if self._can_allocate(line):
+        if self.can_allocate(line):
             self._allocations.add(line)
     
     def deallocate(self, line: OrderLine) -> None:
@@ -49,12 +49,13 @@ class Batch:
     def available_qty(self) -> int:
         qty = self.qty - self.allocated_qty
         return qty
+    
+    def can_allocate(self, line: OrderLine) -> bool:
+        return self.qty >= line.qty and self.sku == line.sku
 
     def _has_been_allocated(self, line) -> bool:
         return line in self._allocations
 
-    def _can_allocate(self, line: OrderLine) -> bool:
-        return self.qty >= line.qty and self.sku == line.sku
     
     # Enforce identity equality on ref
     def __eq__(self, other) -> bool:
@@ -69,3 +70,18 @@ class Batch:
     # see: https://hynek.me/articles/hashes-and-equality/
     def __hash__(self) -> int:
         return hash(self.ref)
+
+    def __gt__(self, other) -> bool:
+        if self.eta is None:
+            return False
+        if other.eta is None:
+            return True
+        return self.eta > other.eta  
+
+
+def allocate(line: OrderLine, batches: List[Batch]) -> str:
+    if len(batches) > 0:
+        batch = next( # grabs first in the list after sorted and condition
+            batch for batch in sorted(batches) if batch.can_allocate)
+        batch.allocate(line)
+        return batch.ref
