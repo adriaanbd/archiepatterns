@@ -1,10 +1,6 @@
+import pytest
 from datetime import date, timedelta
 from model import Batch, OrderLine
-import pytest
-
-today = date.today()
-tomorrow = today + timedelta(days=1)
-later = tomorrow + timedelta(days=10)
 
 QUANTITY, GREATER, SMALLER = 20, 30, 10
 SKU, BATCH_REF, ORDER_REF = 'CRAZY_LAMP', 'batch-ref', 'order-ref'
