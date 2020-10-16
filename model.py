@@ -1,3 +1,4 @@
+from __future__ import annotations
 from dataclasses import dataclass
 from typing import NewType, Optional, Set, TypeVar, List
 from datetime import date
@@ -7,6 +8,29 @@ Sku = NewType('Sku', str)
 Ref = NewType('Ref', str)
 OrderId = NewType('OrderId', str)
 Eta = TypeVar('Eta', date, None)
+
+
+# a Domain Excepction
+class OutOfStock(Exception):
+    pass
+
+
+# a Domain Service
+def allocate(line: OrderLine, batches: List[Batch]) -> str:
+    """
+    Domain Service to allocate order lines against a list of batches
+    """
+    assert len(batches) > 0, "At least 1 batch is needed"
+    try:
+        batch = next(
+            b for b in sorted(batches)
+            if b.can_allocate(line)
+        )
+        batch.allocate(line)
+        return batch.ref
+    except StopIteration:
+        raise OutOfStock(f'Out of stock for {line.sku}')
+    
 
 
 # A ValueObject is uniquely identified
@@ -25,6 +49,21 @@ class OrderLine:
 # change their values and they are still
 # the same. 
 class Batch:
+    """
+    A class that represents a Batch of items
+
+    Attributes:
+        ref: 
+            The reference used for a Batch
+        sku:
+            Stock Keeping Unit
+        eta:
+            Estimated Time of Arrival
+        qty:
+            Quantity of items
+        allocations:
+            A set of Order Lines allocated to a Batch
+    """
     def __init__(self, ref: Ref, sku: Sku, qty: Qty, eta: Eta = None) -> None:
         self.ref = ref
         self.sku = sku
@@ -33,6 +72,18 @@ class Batch:
         self._allocations: Set[OrderLine] = set()
 
     def allocate(self, line: OrderLine) -> None:
+        """Allocates an OrderLine to a Batch
+
+        Allocates an OrderLine to a Batch if the OrderLine's 
+        reference matches the Batch's reference and if the
+        Batch's available quantity is greater or equal to the
+        OrderLine's quantity. Idempotency is guaranteed by the
+        the use of a set, which achieves uniqueness of a Batch 
+        by a hash of its reference attribute.
+
+        Args:
+            OrderLine
+        """
         if self.can_allocate(line):
             self._allocations.add(line)
     
@@ -42,6 +93,14 @@ class Batch:
 
     @property
     def allocated_qty(self) -> int:
+        """Agregates the quantity of all allocated Order Lines
+        
+        A Batch must keep track of the total quantity of SKUs 
+        allocated to it.
+
+        Returns:
+            The quantity of all allocations
+        """
         qty = sum(line.qty for line in self._allocations)
         return qty
 
@@ -51,11 +110,13 @@ class Batch:
         return qty
     
     def can_allocate(self, line: OrderLine) -> bool:
-        return self.qty >= line.qty and self.sku == line.sku
+        return self.sku == line.sku and self.available_qty >= line.qty 
 
     def _has_been_allocated(self, line) -> bool:
         return line in self._allocations
 
+    def __repr__(self):
+        return f'<Batch {self.ref}>'
     
     # Enforce identity equality on ref
     def __eq__(self, other) -> bool:
@@ -77,11 +138,3 @@ class Batch:
         if other.eta is None:
             return True
         return self.eta > other.eta  
-
-
-def allocate(line: OrderLine, batches: List[Batch]) -> str:
-    if len(batches) > 0:
-        batch = next( # grabs first in the list after sorted and condition
-            batch for batch in sorted(batches) if batch.can_allocate)
-        batch.allocate(line)
-        return batch.ref
