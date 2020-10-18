@@ -30,7 +30,6 @@ def allocate(line: OrderLine, batches: List[Batch]) -> str:
         return batch.ref
     except StopIteration:
         raise OutOfStock(f'Out of stock for {line.sku}')
-    
 
 
 # A ValueObject is uniquely identified
@@ -39,7 +38,7 @@ def allocate(line: OrderLine, batches: List[Batch]) -> str:
 # equality. Two lines with the same
 # orderid, sky and qty are equal
 @dataclass(frozen=True)
-class OrderLine: 
+class OrderLine:
     orderid: OrderId
     sku: Sku
     qty: Qty
@@ -53,7 +52,7 @@ class Batch:
     A class that represents a Batch of items
 
     Attributes:
-        ref: 
+        ref:
             The reference used for a Batch
         sku:
             Stock Keeping Unit
@@ -86,7 +85,7 @@ class Batch:
         """
         if self.can_allocate(line):
             self._allocations.add(line)
-    
+
     def deallocate(self, line: OrderLine) -> None:
         if self._has_been_allocated(line):
             self._allocations.remove(line)
@@ -94,7 +93,7 @@ class Batch:
     @property
     def allocated_qty(self) -> int:
         """Agregates the quantity of all allocated Order Lines
-        
+
         A Batch must keep track of the total quantity of SKUs 
         allocated to it.
 
@@ -108,22 +107,22 @@ class Batch:
     def available_qty(self) -> int:
         qty = self.qty - self.allocated_qty
         return qty
-    
+
     def can_allocate(self, line: OrderLine) -> bool:
-        return self.sku == line.sku and self.available_qty >= line.qty 
+        return self.sku == line.sku and self.available_qty >= line.qty
 
     def _has_been_allocated(self, line) -> bool:
         return line in self._allocations
 
     def __repr__(self):
         return f'<Batch {self.ref}>'
-    
+
     # Enforce identity equality on ref
     def __eq__(self, other) -> bool:
         if not isinstance(other, Batch):
             return False
         return other.ref == self.ref
-    
+
     # make Batch hashable to use in dict or set
     # two instances of Batch will have diff hashes
     # the hash must never change during its lifetime
@@ -137,4 +136,5 @@ class Batch:
             return False
         if other.eta is None:
             return True
-        return self.eta > other.eta  
+        return self.eta > other.eta
+
