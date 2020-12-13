@@ -6,6 +6,7 @@ BATCH_2 = "batch2"
 ORDER_1 = "order1"
 SOFA = "SOFA"
 SOAP = "SOAP"
+BENCH = "BENCH"
 TWELVE = 12
 HUNDRED = 100
 
@@ -31,8 +32,7 @@ def insert_order_line(session):
         f' VALUES ("{ORDER_1}", "{SOFA}", "{TWELVE}")'
     )
     [[orderline_id]] = session.execute(
-        'SELECT id FROM order_lines WHERE orderid=:orderid AND sku=:sku',
-        dict(orderid=ORDER_1, sku=SOFA)
+        f'SELECT id FROM order_lines WHERE orderid="{ORDER_1}" AND sku="{SOFA}"',
     )
 
     return orderline_id
@@ -41,19 +41,16 @@ def insert_batch(session, batch_id):
     session.execute(
         'INSERT INTO batches (ref, sku, _qty, eta)'
         f' VALUES ("{batch_id}", "{SOFA}", "{HUNDRED}", null)',
-        dict(batch_id=batch_id)
     )
     [[batch_id]] = session.execute(
-        f'SELECT id FROM batches WHERE ref="{batch_id}" AND sku="{SOFA}"',
-        dict(batch_id=batch_id)
+        f'SELECT id FROM batches WHERE ref="{batch_id}" AND sku="{SOFA}"'
     )
     return batch_id
 
 def insert_allocation(session, orderline_id, batch_id):
     session.execute(
         'INSERT INTO allocations (orderline_id, batch_id)'
-        ' VALUES (:orderline_id, :batch_id)',
-        dict(orderline_id=orderline_id, batch_id=batch_id)
+        f' VALUES ("{orderline_id}", "{batch_id}")',
     )
 
 def test_repository_can_retrieve_a_batch_with_allocations(session):
@@ -72,3 +69,31 @@ def test_repository_can_retrieve_a_batch_with_allocations(session):
     assert retrieved._allocations == {
         OrderLine(ORDER_1, SOFA, TWELVE),
     }
+
+def get_allocations(session, batchid):
+    rows = list(session.execute(
+        'SELECT orderid'
+        ' FROM allocations'
+        ' JOIN order_lines ON allocations.orderline_id = order_lines.id'
+        ' JOIN batches ON allocations.batch_id = batches.id'
+        ' WHERE batches.ref = :batchid',
+        dict(batchid=batchid)
+    ))
+    return {row[0] for row in rows}
+
+
+def test_updating_a_batch(session):
+    order1 = OrderLine(ORDER_1, BENCH, 10)
+    order2 = OrderLine('order2', BENCH, 20)
+    batch = Batch(BATCH_1, BENCH, 100, eta=None)
+    batch.allocate(order1)
+
+    repo = SQLAlchemyRepository(session)
+    repo.add(batch)
+    session.commit()
+
+    batch.allocate(order2)
+    repo.add(batch)
+    session.commit()
+
+    assert get_allocations(session, BATCH_1) == {ORDER_1, 'order2'}
