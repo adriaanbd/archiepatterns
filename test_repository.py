@@ -9,11 +9,26 @@ SOAP = "SOAP"
 TWELVE = 12
 HUNDRED = 100
 
+def test_repository_can_save_a_batch(session):
+    batch = Batch(BATCH_1, SOAP, HUNDRED, eta=None)
+    repo = SQLAlchemyRepository(session)
+    repo.add(batch)  # method under test
+    session.commit()  # separate from repository (intentional)
+
+    #  verify the data is saved
+    rows = list(
+        session.execute(
+            'SELECT ref, sku, _qty, eta ' \
+            'FROM "batches"'
+        )
+    )
+
+    assert rows == [(BATCH_1, SOAP, HUNDRED, None)]
 
 def insert_order_line(session):
     session.execute(
         'INSERT INTO order_lines (orderid, sku, qty)'
-        f' VALUES ({ORDER_1}, {SOFA}, {TWELVE})'
+        f' VALUES ("{ORDER_1}", "{SOFA}", "{TWELVE}")'
     )
     [[orderline_id]] = session.execute(
         'SELECT id FROM order_lines WHERE orderid=:orderid AND sku=:sku',
@@ -24,12 +39,12 @@ def insert_order_line(session):
 
 def insert_batch(session, batch_id):
     session.execute(
-        'INSERT INTO batches (reference, sku, _purchased_quantity, eta)'
-        ' VALUES (:batch_id, "SOFA", 100, null)',
+        'INSERT INTO batches (ref, sku, _qty, eta)'
+        f' VALUES ("{batch_id}", "{SOFA}", "{HUNDRED}", null)',
         dict(batch_id=batch_id)
     )
     [[batch_id]] = session.execute(
-        'SELECT id FROM batches WHERE reference=:batch_id AND sku="SOFA"',
+        f'SELECT id FROM batches WHERE ref="{batch_id}" AND sku="{SOFA}"',
         dict(batch_id=batch_id)
     )
     return batch_id
@@ -40,22 +55,6 @@ def insert_allocation(session, orderline_id, batch_id):
         ' VALUES (:orderline_id, :batch_id)',
         dict(orderline_id=orderline_id, batch_id=batch_id)
     )
-
-def test_repository_can_save_a_batch(session):
-    batch = Batch(BATCH_1, SOAP, HUNDRED, eta=None)
-    repo = SQLAlchemyRepository(session)
-    repo.add(batch)  # method under test
-    session.commit()  # separate from repository (intentional)
-
-    #  verify the data is saved
-    rows = list(
-        session.execute(
-            'SELECT reference, sku, _purchases_quantity, eta ' \
-            'FROM "batches"'
-        )
-    )
-
-    assert rows == [(BATCH_1, SOAP, HUNDRED, None)]
 
 def test_repository_can_retrieve_a_batch_with_allocations(session):
     orderline_id = insert_order_line(session)
