@@ -13,9 +13,9 @@ TWELVE, THIRTEEN, FOURTEEN = 12, 13, 14
 def test_orderline_mapper_can_load_lines(session):
     session.execute(
         'INSERT INTO order_lines (orderid, sku, qty) VALUES '
-        f'("{ORDER_1}", "{CHAIR}", "{QUANTITY}"),'
-        f'("{ORDER_1}", "{TABLE}", "{QUANTITY + 1}"),'
-        f'("{ORDER_2}", "{LIPSTICK}, "{QUANTITY + 2}")'
+        f'("{ORDER_1}", "{CHAIR}", {QUANTITY}),'
+        f'("{ORDER_1}", "{TABLE}", {QUANTITY + 1}),'
+        f'("{ORDER_2}", "{LIPSTICK}", {QUANTITY + 2})'
     )
     expected = [
         OrderLine(ORDER_1, CHAIR, TWELVE),
