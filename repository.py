@@ -21,7 +21,7 @@ class SQLAlchemyRepository(AbstractRepository):
 
     def get(self, reference):
         return self.session.query(Batch).filter_by(
-            reference=reference).one()
+            ref=reference).one()
 
     def list(self):
         return self.session.query(Batch).all()
