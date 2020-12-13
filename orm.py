@@ -34,12 +34,16 @@ allocations = Table(
 )
 
 def start_mappers():
-    lines_mapper = mapper(OrderLine, order_lines)
+    lines_mapper = mapper(OrderLine, order_lines)  # returns Mapper object that defines correlation
+    # of class attrs to ddbb table columns. When mapper() is used explicitly to link a user defined
+    # class with table metadata, this is referred to as classical mapping.
+    # https://docs.sqlalchemy.org/en/13/orm/mapping_api.html#sqlalchemy.orm.mapper.params.properties
+    # https://docs.sqlalchemy.org/en/13/orm/relationship_api.html#sqlalchemy.orm.relationship
     mapper(Batch, batches, properties={
         '_allocations': relationship(
-            lines_mapper,
-            secondary=allocations,
-            collection_class=set,
+            lines_mapper,  # mapped class or Mapper instance representing relationship target
+            secondary=allocations, # intermediary junction table to link two tables
+            collection_class=set,  # will be used in place of default list() for storing elems
         )
     })
 

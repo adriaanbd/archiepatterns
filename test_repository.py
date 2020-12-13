@@ -14,11 +14,14 @@ def test_repository_can_save_a_batch(session):
     batch = Batch(BATCH_1, SOAP, HUNDRED, eta=None)
     repo = SQLAlchemyRepository(session)
     repo.add(batch)  # method under test
-    session.commit()  # separate from repository (intentional)
+    # https://docs.sqlalchemy.org/en/13/orm/session_basics.html#committing
+    session.commit()  # separate from repository (intentional), it
+    # flushes pending changes and commits the current transaction.
 
     #  verify the data is saved
     rows = list(
-        session.execute(
+        # https://docs.sqlalchemy.org/en/13/orm/session_api.html#sqlalchemy.orm.session.Session.execute
+        session.execute( # Execute a SQL expression construct or string statement within the current transaction
             'SELECT ref, sku, _qty, eta ' \
             'FROM "batches"'
         )

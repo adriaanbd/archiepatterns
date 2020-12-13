@@ -17,7 +17,9 @@ class SQLAlchemyRepository(AbstractRepository):
         self.session = session
 
     def add(self, batch):
-        self.session.add(batch)
+        # https://docs.sqlalchemy.org/en/13/orm/session_api.html#sqlalchemy.orm.session.Session.add
+        self.session.add(batch)  # places batch in the Session, its state will be persisted to the
+        # ddbb on the next flush operation
 
     def get(self, reference):
         return self.session.query(Batch).filter_by(
