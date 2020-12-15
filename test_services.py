@@ -1,6 +1,7 @@
+import pytest
 from repository import AbstractRepository
 from model import OrderLine, Batch
-from services import allocate
+from services import allocate, InvalidSKU
 
 
 class FakeRepository(AbstractRepository):
@@ -37,5 +38,13 @@ def test_returns_allocation():
     batch = Batch(BATCH_1, REAL_SKU, HIGH_NUM, eta=None)
     repo = FakeRepository([batch])
 
-    result = allocate(line, repo)
+    result = allocate(line, repo, session=None)
     assert result == BATCH_1
+
+def test_error_for_invalid_sku():
+    line = OrderLine(ORDER_1, UNREAL_SKU, LOW_NUM)
+    batch = Batch(BATCH_1, REAL_SKU, HIGH_NUM, eta=None)
+    repo = FakeRepository([batch])
+
+    with pytest.raises(InvalidSKU, match=f"Invalid SKU: {UNREAL_SKU}"):
+        allocate(line, repo, session=FakeSession())
