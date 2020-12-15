@@ -1,5 +1,3 @@
-import pytest
-from datetime import date, timedelta
 from model import Batch, OrderLine
 
 QUANTITY, GREATER, SMALLER = 20, 30, 10

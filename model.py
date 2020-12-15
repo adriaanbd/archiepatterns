@@ -1,6 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass
-from typing import NewType, Optional, Set, TypeVar, List
+from typing import NewType, Set, TypeVar, List
 from datetime import date
 
 Qty = NewType('Qty', int)

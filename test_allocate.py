@@ -1,7 +1,6 @@
 import pytest
 from datetime import date, timedelta
 from model import Batch, OrderLine, allocate, OutOfStock
-from pdb import set_trace
 
 today = date.today()
 tomorrow = today + timedelta(days=1)
