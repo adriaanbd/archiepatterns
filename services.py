@@ -26,3 +26,12 @@ def allocate(line: OrderLine, repo: AbstractRepository, session) -> str:
 	ref = domain_allocate(line, batches)
 	session.commit()
 	return ref
+
+def add_batch(batch: Batch, repo: AbstractRepository, session):
+	repo.add(batch)
+	session.commit()
+
+def deallocate(line: OrderLine, ref: str, repo: AbstractRepository, session):
+	batch: Batch = repo.get(ref)
+	batch.deallocate(line)
+	session.commit()

@@ -1,7 +1,9 @@
+from conftest import session
 import pytest
 from repository import AbstractRepository
-from model import OrderLine, Batch
-from services import allocate, InvalidSKU
+from model import OrderLine, Batch, Sku
+from services import allocate, InvalidSKU, add_batch, deallocate
+from typing import List
 
 
 class FakeRepository(AbstractRepository):
@@ -9,13 +11,13 @@ class FakeRepository(AbstractRepository):
     def __init__(self, batches):
         self._batches = set(batches)
 
-    def add(self, batch):
+    def add(self, batch: Batch) -> None:
         self._batches.add(batch)
 
-    def get(self, reference):
-        return next(b for b in self._batches if b.ref == reference)
+    def get(self, ref: Sku) -> Batch:
+        return next(b for b in self._batches if b.ref == ref)
 
-    def list(self):
+    def list(self) -> List[Batch]:
         return list(self._batches)
 
 
@@ -38,7 +40,7 @@ def test_returns_allocation():
     batch = Batch(BATCH_1, REAL_SKU, HIGH_NUM, eta=None)
     repo = FakeRepository([batch])
 
-    result = allocate(line, repo, session=None)
+    result = allocate(line, repo, FakeSession())
     assert result == BATCH_1
 
 def test_error_for_invalid_sku():
@@ -57,3 +59,12 @@ def test_commits():
 
     allocate(line, repo, session)
     assert session.committed is True
+
+def test_deallocate_decrements_available_quantity():
+    line = OrderLine(ORDER_1, REAL_SKU, LOW_NUM)
+    batch = Batch(BATCH_1, REAL_SKU, HIGH_NUM, None)
+    repo, session = FakeRepository([batch]), FakeSession()
+    batch_ref = allocate(line, repo, session)
+    assert batch.available_qty == HIGH_NUM - LOW_NUM
+    deallocate(line, batch_ref, repo, session)
+    assert batch.available_qty == HIGH_NUM
