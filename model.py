@@ -73,7 +73,7 @@ class Batch:
             self._allocations.add(line)
 
     def deallocate(self, line: OrderLine) -> None:
-        if self._has_been_allocated(line):
+        if self.has_been_allocated(line):
             self._allocations.remove(line)
 
     @property
@@ -97,7 +97,7 @@ class Batch:
     def can_allocate(self, line: OrderLine) -> bool:
         return self.sku == line.sku and self.available_qty >= line.qty
 
-    def _has_been_allocated(self, line) -> bool:
+    def has_been_allocated(self, line) -> bool:
         return line in self._allocations
 
     def __repr__(self):

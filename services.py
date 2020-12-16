@@ -7,6 +7,9 @@ from typing import List
 class InvalidSKU(Exception):
 	pass
 
+class UnallocatedSKU(Exception):
+	pass
+
 
 def is_valid_sku(line: OrderLine, batches: List[Batch]) -> bool:
 	"""
@@ -31,7 +34,12 @@ def add_batch(batch: Batch, repo: AbstractRepository, session):
 	repo.add(batch)
 	session.commit()
 
+def is_allocated_sku(line, batch):
+	return batch.has_been_allocated(line)
+
 def deallocate(line: OrderLine, ref: str, repo: AbstractRepository, session):
 	batch: Batch = repo.get(ref)
+	if not is_allocated_sku(line, batch):
+		raise UnallocatedSKU(f'Unallocated SKU: {line.sku}')
 	batch.deallocate(line)
 	session.commit()

@@ -2,7 +2,7 @@ from conftest import session
 import pytest
 from repository import AbstractRepository
 from model import OrderLine, Batch, Sku
-from services import allocate, InvalidSKU, add_batch, deallocate
+from services import allocate, InvalidSKU, add_batch, deallocate, UnallocatedSKU
 from typing import List
 
 
@@ -68,3 +68,10 @@ def test_deallocate_decrements_available_quantity():
     assert batch.available_qty == HIGH_NUM - LOW_NUM
     deallocate(line, batch_ref, repo, session)
     assert batch.available_qty == HIGH_NUM
+
+def test_trying_to_deallocate_unallocated_sku():
+    line = OrderLine(ORDER_1, UNREAL_SKU, LOW_NUM)
+    batch = Batch(BATCH_1, REAL_SKU, HIGH_NUM, None)
+    repo, session = FakeRepository([batch]), FakeSession()
+    with pytest.raises(UnallocatedSKU, match=f"Unallocated SKU: {UNREAL_SKU}"):
+        deallocate(line, batch.ref, repo, session)
