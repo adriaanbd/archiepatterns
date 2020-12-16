@@ -48,3 +48,12 @@ def test_error_for_invalid_sku():
 
     with pytest.raises(InvalidSKU, match=f"Invalid SKU: {UNREAL_SKU}"):
         allocate(line, repo, session=FakeSession())
+
+def test_commits():
+    line = OrderLine(ORDER_1, REAL_SKU, LOW_NUM)
+    batch = Batch(BATCH_1, REAL_SKU, HIGH_NUM, eta=None)
+    repo = FakeRepository([batch])
+    session = FakeSession()
+
+    allocate(line, repo, session)
+    assert session.committed is True
