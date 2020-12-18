@@ -1,13 +1,5 @@
-# app
+pytest
 sqlalchemy
 flask
-psycopg2-binary
-redis
-
-# dev/tests
-pytest
-pytest-icdiff
-mypy
-pylint
+psycopg2
 requests
-tenacity
