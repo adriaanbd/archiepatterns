@@ -16,7 +16,7 @@ app = Flask(__name__)
 @app.route("/allocate", methods=['POST'])
 def allocate_endpoint():
     session = get_session()
-    repo = repository.SqlAlchemyRepository(session)
+    repo = repository.SQLAlchemyRepository(session)
     line = model.OrderLine(
         request.json['orderid'],
         request.json['sku'],
