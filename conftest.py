@@ -43,12 +43,12 @@ def session(in_memory_db):
 
 
 def wait_for_postgres_to_come_up(engine):
-    deadline = time.time() + 10
+    deadline = time.time() + 15
     while time.time() < deadline:
         try:
             return engine.connect()
         except OperationalError:
-            time.sleep(0.5)
+            time.sleep(0.7)
     pytest.fail('Postgres never came up')
 
 
@@ -120,6 +120,10 @@ def add_stock(postgres_session):
 
 @pytest.fixture
 def restart_api():
-    (Path(__file__).parent / 'flask_app.py').touch()
-    time.sleep(0.5)
+    # touch:
+    # Create a file at this given path. If the file already exists, the
+    # function succeeds if exist_ok is true (and its modification time is
+    # updated to the current time), otherwise FileExistsError is raised.
+    (Path(__file__).parent / 'flask_app.py').touch()  # parent: the logical parent of the path
+    time.sleep(0.7)
     wait_for_webapp_to_come_up()

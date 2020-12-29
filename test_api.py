@@ -25,6 +25,7 @@ def test_happy_path_returns_201_and_allocated_batch(add_stock):
     earlybatch = random_batchref(1)
     laterbatch = random_batchref(2)
     otherbatch = random_batchref(3)
+    breakpoint()
     add_stock([
         (laterbatch, sku, 100, '2011-01-02'),
         (earlybatch, sku, 100, '2011-01-01'),

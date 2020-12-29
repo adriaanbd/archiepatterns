@@ -22,4 +22,4 @@ services:
       - POSTGRES_USER=allocation
       - POSTGRES_PASSWORD=abc123
     ports:
-      - "54321:5432"
+      - "5432:5432"
