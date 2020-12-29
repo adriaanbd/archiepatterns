@@ -37,6 +37,8 @@ CLOCK, SPOON, FORK, POSTER = "CLOCK", "SPOON", "FORK", "POSTER"
 BATCH1, ORDER1, ORDER2 = "batch1", "order1", "order2"
 SPEEDY, NORMAL, SLOW = "speedy-batch", "normal-batch", "slow-batch"
 OREF = "oref"
+QUANTITY, GREATER, SMALLER = 20, 30, 10
+SKU, BATCH_REF, ORDER_REF = 'CRAZY_LAMP', 'batch-ref', 'order-ref'
 today = date.today()
 tomorrow = today + timedelta(days=1)
 later = tomorrow + timedelta(days=10)
@@ -137,3 +139,65 @@ def test_raises_out_of_stock_exception_if_cannot_allocate():
 
     with pytest.raises(model.OutOfStock, match=FORK):
         services.allocate(unallocated_line, repo, sesh)
+
+def make_batch_n_line(sku, batch_qty, line_qty):
+    batch = model.Batch(BATCH_REF, sku, batch_qty)
+    line = model.OrderLine(ORDER_REF, sku, line_qty)
+    return batch, line
+
+def test_does_allocate_if_available_greater_than_required():
+    batch, line = make_batch_n_line(SKU, QUANTITY, SMALLER)
+    repo = FakeRepository([batch])
+    sesh = FakeSession()
+
+    services.allocate(line, repo, sesh)
+    assert batch.available_qty == QUANTITY - SMALLER
+
+def test_doesnt_allocate_if_available_smaller_than_required():
+    batch, line = make_batch_n_line(SKU, QUANTITY, GREATER)
+    repo = FakeRepository([batch])
+    sesh = FakeSession()
+
+    try:
+        services.allocate(line, repo, sesh)
+    except model.OutOfStock:
+        assert batch.available_qty == QUANTITY
+
+def test_does_allocate_if_available_equal_to_required():
+    batch, line = make_batch_n_line(SKU, QUANTITY, QUANTITY)
+    repo = FakeRepository([batch])
+    sesh = FakeSession()
+
+    services.allocate(line, repo, sesh)
+    assert batch.available_qty == 0
+
+def test_doesnt_allocate_if_skus_do_not_match():
+    batch = model.Batch(BATCH_REF, SKU, QUANTITY)
+    line = model.OrderLine(ORDER_REF, 'SANE_LAMP', SMALLER)
+    repo = FakeRepository([batch])
+    sesh = FakeSession()
+
+    try:
+        services.allocate(line, repo, sesh)
+    except services.InvalidSKU:
+        assert batch.available_qty == QUANTITY
+
+def test_can_only_deallocate_allocated_lines():
+    batch, unallocated_line = make_batch_n_line(SKU, QUANTITY, SMALLER)
+    repo = FakeRepository([batch])
+    sesh = FakeSession()
+
+    try:
+        services.deallocate(unallocated_line, batch.ref, repo, sesh)
+    except services.UnallocatedSKU:
+        assert batch.available_qty == QUANTITY
+
+def test_allocation_is_idempotent():
+    batch, line = make_batch_n_line(SKU, QUANTITY, SMALLER)
+    repo = FakeRepository([batch])
+    sesh = FakeSession()
+
+    services.allocate(line, repo, sesh)
+    services.allocate(line, repo, sesh)
+
+    assert batch.available_qty == QUANTITY - SMALLER
