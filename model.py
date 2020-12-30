@@ -72,9 +72,11 @@ class Batch:
         if self.can_allocate(line):
             self._allocations.add(line)
 
-    def deallocate(self, line: OrderLine) -> None:
-        if self.has_been_allocated(line):
-            self._allocations.remove(line)
+    def deallocate(self, orderid, sku, qty) -> None:
+        line = OrderLine(orderid, sku, qty)
+        if not self.has_been_allocated(line):
+            raise UnallocatedSKU(f'Unallocated SKU: {sku}')
+        self._allocations.remove(line)
 
     @property
     def allocated_qty(self) -> int:
@@ -129,6 +131,8 @@ class Batch:
 class OutOfStock(Exception):
     pass
 
+class UnallocatedSKU(Exception):
+    pass
 
 # a Domain Service
 def allocate(line: OrderLine, batches: List[Batch]) -> str:

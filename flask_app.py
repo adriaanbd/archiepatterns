@@ -17,17 +17,17 @@ app = Flask(__name__)
 def allocate_endpoint():
     session = get_session()
     repo = repository.SQLAlchemyRepository(session)
-    line = model.OrderLine(
+    oid, sku, qty = (
         request.json['orderid'],
         request.json['sku'],
         request.json['qty'],
     )
     try:
-        batchref = services.allocate(line, repo, session)
+        batchref = services.allocate(oid, sku, qty, repo, session)
     except (
         model.OutOfStock,
-        services.InvalidSKU,
-        services.UnallocatedSKU
+        model.UnallocatedSKU,
+        services.InvalidSKU
     ) as exc:
         return jsonify({'message': str(exc)}), 400
 
