@@ -135,11 +135,12 @@ class UnallocatedSKU(Exception):
     pass
 
 # a Domain Service
-def allocate(line: OrderLine, batches: List[Batch]) -> str:
+def allocate(orderid: OrderId, sku: Sku, qty: Qty, batches: List[Batch]) -> str:
     """
     Domain Service to allocate order lines against a list of batches
     """
     assert len(batches) > 0, "At least 1 batch is needed"
+    line = OrderLine(orderid, sku, qty)
     try:
         batch = next(
             b for b in sorted(batches)
