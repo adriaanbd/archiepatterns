@@ -1,6 +1,6 @@
 import model
 from repository import AbstractRepository
-from typing import List
+from typing import List, Optional
 
 
 class InvalidSKU(Exception):
@@ -14,6 +14,11 @@ def is_valid_sku(sku: str, batches: List[model.Batch]) -> bool:
     skus = {b.sku for b in batches}
     return sku in skus
 
+def add_batch(ref: str, sku: str, qty: int, eta: Optional[str], repo: AbstractRepository, session):
+    batch = model.Batch(ref, sku, qty, eta)
+    repo.add(batch)
+    session.commit()
+
 def allocate(orderid:str, sku: str, qty: int, repo: AbstractRepository, session) -> str:
     """
     Obtains a list of Batches from data layer, validates OrderLine,
@@ -26,9 +31,6 @@ def allocate(orderid:str, sku: str, qty: int, repo: AbstractRepository, session)
     session.commit()
     return ref
 
-def add_batch(batch: model.Batch, repo: AbstractRepository, session):
-    repo.add(batch)
-    session.commit()
 
 def deallocate(orderid:str, sku: str, qty: int, ref: str, repo: AbstractRepository, session):
     batch: model.Batch = repo.get(ref)

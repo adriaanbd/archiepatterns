@@ -196,3 +196,9 @@ def test_allocation_is_idempotent():
 
     batch = repo.get(BATCH_REF)
     assert batch.available_qty == QUANTITY - SMALLER
+
+def test_add_batch():
+    repo, session = FakeRepository([]), FakeSession()
+    services.add_batch(BATCH_1, REAL_SKU,   100, None, repo, session)
+    assert repo.get(BATCH_1) is not None
+    assert session.committed
