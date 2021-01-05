@@ -25,6 +25,7 @@ class FakeRepository(AbstractRepository):
 
     @staticmethod
     def for_batch(ref, sku, qty, eta=None):
+        """Factory for making a Repository with a Batch."""
         repo = FakeRepository([model.Batch(ref, sku, qty, eta)])
         return repo
 
@@ -38,7 +39,7 @@ class FakeSession():
 
 ORDER_1, BATCH_1 = "O1", "B1"
 REAL_SKU, UNREAL_SKU = "SKU_EXISTS", "SKU_DOESNT_EXIST"
-IN_STOCK = "IN_STOCK_BACK"
+IN_STOCK = "IN_STOCK_BATCH"
 SHIPMENT = "SHIPMENT-BATCH"
 LOW_NUM, HIGH_NUM = 10, 100
 CLOCK, SPOON, FORK, POSTER = "CLOCK", "SPOON", "FORK", "POSTER"
@@ -51,43 +52,70 @@ today = date.today()
 tomorrow = today + timedelta(days=1)
 later = tomorrow + timedelta(days=10)
 
+
+def test_add_batch():
+    repo, session = FakeRepository([]), FakeSession()
+    services.add_batch(BATCH_1, REAL_SKU,   100, None, repo, session)
+    assert repo.get(BATCH_1) is not None
+    assert session.committed
+
 def test_returns_allocation():
     """
     Tests that the allocation service is able to allocate an OrderLine.
     """
-    repo = FakeRepository.for_batch(BATCH_1, REAL_SKU, HIGH_NUM, eta=None)
-
+    # repo = FakeRepository.for_batch(BATCH_1, REAL_SKU, HIGH_NUM, eta=None)
+    repo, session = FakeRepository([]), FakeSession()
+    services.add_batch(BATCH_1, REAL_SKU, HIGH_NUM, None, repo, session)
     result = services.allocate(
-        ORDER_1, REAL_SKU, LOW_NUM, repo, FakeSession())
+        ORDER_1, REAL_SKU, LOW_NUM, repo, session)
     assert result == BATCH_1
 
 def test_error_for_invalid_sku():
-    repo = FakeRepository.for_batch(BATCH_1, REAL_SKU, HIGH_NUM, eta=None)
-
+    # repo = FakeRepository.for_batch(BATCH_1, REAL_SKU, HIGH_NUM, eta=None)
+    repo, session = FakeRepository([]), FakeSession()
+    services.add_batch(BATCH_1, REAL_SKU, HIGH_NUM, None, repo, session)
     with pytest.raises(services.InvalidSKU, match=f"Invalid SKU: {UNREAL_SKU}"):
-        services.allocate(ORDER_1, UNREAL_SKU, LOW_NUM, repo, FakeSession())
+        services.allocate(ORDER_1, UNREAL_SKU, LOW_NUM, repo, session)
 
 def test_commits():
-    repo = FakeRepository.for_batch(BATCH_1, REAL_SKU, HIGH_NUM, eta=None)
-    session = FakeSession()
+    # repo = FakeRepository.for_batch(BATCH_1, REAL_SKU, HIGH_NUM, eta=None)
+    repo, session = FakeRepository([]), FakeSession()
+    services.add_batch(BATCH_1, REAL_SKU, HIGH_NUM, None, repo, session)
     services.allocate(ORDER_1, REAL_SKU, LOW_NUM, repo, session)
     assert session.committed is True
 
 def test_deallocate_decrements_available_quantity():
-    repo = FakeRepository.for_batch(BATCH_1, REAL_SKU, HIGH_NUM, None)
-    sesh = FakeSession()
-    batch_ref = services.allocate(ORDER_1, REAL_SKU, LOW_NUM, repo, sesh)
+    # repo = FakeRepository.for_batch(BATCH_1, REAL_SKU, HIGH_NUM, None)
+    repo, session = FakeRepository([]), FakeSession()
+
+    services.add_batch(BATCH_1, REAL_SKU, HIGH_NUM, None, repo, session)
+    batch_ref = services.allocate(ORDER_1, REAL_SKU, LOW_NUM, repo, session)
 
     batch = repo.get(batch_ref)
-    services.deallocate(ORDER_1, REAL_SKU, LOW_NUM, batch_ref, repo, sesh)
+    services.deallocate(ORDER_1, REAL_SKU, LOW_NUM, batch_ref, repo, session)
     assert batch.available_qty == HIGH_NUM
 
 def test_trying_to_deallocate_unallocated_sku():
-    repo = FakeRepository.for_batch(BATCH_1, REAL_SKU, HIGH_NUM, None)
-    session = FakeSession()
+    # repo = FakeRepository.for_batch(BATCH_1, REAL_SKU, HIGH_NUM, None)
+    repo, session = FakeRepository([]), FakeSession()
+    services.add_batch(BATCH_1, REAL_SKU, HIGH_NUM, None, repo, session)
 
     with pytest.raises(model.UnallocatedSKU, match=f"Unallocated SKU: {UNREAL_SKU}"):
         services.deallocate(ORDER_1, REAL_SKU, LOW_NUM, UNREAL_SKU, repo, session)
+
+# def test_prefers_current_stock_batches_to_shipments():
+#     repo, session = FakeRepository([]), FakeSession()
+
+#     in_stock_batch = model.Batch(IN_STOCK, CLOCK, 100, eta=None)
+#     shipment_batch = model.Batch(SHIPMENT, CLOCK, 100, eta=tomorrow)
+
+#     services.add_batch(IN_STOCK, CLOCK, 100, today, repo, session)
+#     services.add_batch(SHIPMENT, CLOCK, 100, tomorrow, repo, session)
+
+#     services.allocate(ORDER_1, CLOCK, 10, repo, session)
+
+#     assert in_stock_batch.available_qty == 90
+#     assert shipment_batch.available_qty == 100
 
 def test_prefers_current_stock_batches_to_shipments():
     in_stock_batch = model.Batch(IN_STOCK, CLOCK, 100, eta=None)
@@ -125,7 +153,7 @@ def test_returns_allocated_batch_ref():
     assert allocation == in_stock_batch.ref
 
 def test_raises_out_of_stock_exception_if_cannot_allocate():
-    repo = FakeRepository.for_batch(BATCH1, FORK, 10, eta=today)
+    # repo = FakeRepository.for_batch(BATCH1, FORK, 10, eta=today)
     sesh = FakeSession()
 
     services.allocate(ORDER1, FORK, 10, repo, sesh)
@@ -139,7 +167,7 @@ def make_batch_n_line(sku, batch_qty, line_qty):
     return batch, line
 
 def test_does_allocate_if_available_greater_than_required():
-    repo = FakeRepository.for_batch(BATCH_REF, SKU, GREATER)
+    # repo = FakeRepository.for_batch(BATCH_REF, SKU, GREATER)
     sesh = FakeSession()
 
     ref = services.allocate(ORDER_REF, SKU, QUANTITY, repo, sesh)
@@ -149,7 +177,7 @@ def test_does_allocate_if_available_greater_than_required():
     assert batch.available_qty == QUANTITY - SMALLER
 
 def test_doesnt_allocate_if_available_smaller_than_required():
-    repo = FakeRepository.for_batch(BATCH_REF, SKU, QUANTITY)
+    # repo = FakeRepository.for_batch(BATCH_REF, SKU, QUANTITY)
     sesh = FakeSession()
     ref = services.allocate(ORDER_REF, SKU, SMALLER, repo, sesh)
 
@@ -160,7 +188,7 @@ def test_doesnt_allocate_if_available_smaller_than_required():
         assert batch.available_qty == QUANTITY - SMALLER
 
 def test_does_allocate_if_available_equal_to_required():
-    repo = FakeRepository.for_batch(BATCH_REF, SKU, QUANTITY)
+    # repo = FakeRepository.for_batch(BATCH_REF, SKU, QUANTITY)
     sesh = FakeSession()
 
     ref = services.allocate(ORDER_1, SKU, QUANTITY, repo, sesh)
@@ -168,7 +196,7 @@ def test_does_allocate_if_available_equal_to_required():
     assert batch.available_qty == 0
 
 def test_doesnt_allocate_if_skus_do_not_match():
-    repo = FakeRepository.for_batch(BATCH_REF, REAL_SKU, QUANTITY)
+    # repo = FakeRepository.for_batch(BATCH_REF, REAL_SKU, QUANTITY)
     sesh = FakeSession()
     ref = services.allocate(ORDER_REF, REAL_SKU, SMALLER, repo, sesh)
     try:
@@ -178,7 +206,7 @@ def test_doesnt_allocate_if_skus_do_not_match():
         assert batch.available_qty == QUANTITY - SMALLER
 
 def test_can_only_deallocate_allocated_lines():
-    repo = FakeRepository.for_batch(BATCH_REF, SKU, QUANTITY)
+    # repo = FakeRepository.for_batch(BATCH_REF, SKU, QUANTITY)
     sesh = FakeSession()
 
     try:
@@ -188,7 +216,7 @@ def test_can_only_deallocate_allocated_lines():
         assert batch.available_qty == QUANTITY
 
 def test_allocation_is_idempotent():
-    repo = FakeRepository.for_batch(BATCH_REF, SKU, QUANTITY)
+    # repo = FakeRepository.for_batch(BATCH_REF, SKU, QUANTITY)
     sesh = FakeSession()
 
     services.allocate(ORDER_REF, SKU, SMALLER, repo, sesh)
@@ -196,9 +224,3 @@ def test_allocation_is_idempotent():
 
     batch = repo.get(BATCH_REF)
     assert batch.available_qty == QUANTITY - SMALLER
-
-def test_add_batch():
-    repo, session = FakeRepository([]), FakeSession()
-    services.add_batch(BATCH_1, REAL_SKU,   100, None, repo, session)
-    assert repo.get(BATCH_1) is not None
-    assert session.committed
