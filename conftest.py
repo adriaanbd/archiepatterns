@@ -28,11 +28,11 @@ def in_memory_db():
 
 
 @pytest.fixture
-def session(in_memory_db):
+def session_factory(in_memory_db):
     start_mappers()
     # factory to generate new Session objects:
     # https://docs.sqlalchemy.org/en/14/orm/session_api.html#sqlalchemy.orm.sessionmaker
-    yield sessionmaker(bind=in_memory_db)()  # bind the session to a connection
+    yield sessionmaker(bind=in_memory_db)  # bind the session to a connection
     # https://docs.sqlalchemy.org/en/14/orm/mapping_api.html#sqlalchemy.orm.clear_mappers
     clear_mappers()  # remove all mappers from all classes, not for normal use, b/c:
     # Normally, mappers are permanent structural components of user-defined classes,
@@ -41,6 +41,9 @@ def session(in_memory_db):
     # As such, it is only for usage in test suites that re-use the same classes with
     # different mappings, which is itself an extremely rare use case
 
+@pytest.fixture
+def session(session_factory):
+    return session_factory()
 
 def wait_for_postgres_to_come_up(engine):
     deadline = time.time() + 15
