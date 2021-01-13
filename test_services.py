@@ -55,7 +55,7 @@ later = tomorrow + timedelta(days=10)
 
 def test_add_batch():
     repo, session = FakeRepository([]), FakeSession()
-    services.add_batch(BATCH_1, REAL_SKU,   100, None, repo, session)
+    services.add_batch(BATCH_1, REAL_SKU, 100, None, repo, session)
     assert repo.get(BATCH_1) is not None
     assert session.committed
 
