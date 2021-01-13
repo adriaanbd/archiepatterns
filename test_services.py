@@ -1,4 +1,4 @@
-from conftest import session
+from conftest import session  # is this session being used?
 import pytest
 from repository import AbstractRepository
 import model
@@ -37,6 +37,14 @@ class FakeSession():
         self.committed = True
 
 
+class FakeUnitOfWork():
+    def __init__(self) -> None:
+        self.batches = FakeRepository([])
+        self.committed = False
+
+    def commit(self):
+        self.committed = True
+
 ORDER_1, BATCH_1 = "O1", "B1"
 REAL_SKU, UNREAL_SKU = "SKU_EXISTS", "SKU_DOESNT_EXIST"
 IN_STOCK = "IN_STOCK_BATCH"
@@ -54,20 +62,24 @@ later = tomorrow + timedelta(days=10)
 
 
 def test_add_batch():
-    repo, session = FakeRepository([]), FakeSession()
-    services.add_batch(BATCH_1, REAL_SKU, 100, None, repo, session)
-    assert repo.get(BATCH_1) is not None
-    assert session.committed
+    # repo, session = FakeRepository([]), FakeSession()
+    uow = FakeUnitOfWork()
+    services.add_batch(BATCH_1, REAL_SKU, 100, None, uow)
+    # assert repo.get(BATCH_1) is not None
+    assert uow.batches.get(BATCH_1) is not None
+    # assert session.committed
+    assert uow.committed
 
 def test_returns_allocation():
     """
     Tests that the allocation service is able to allocate an OrderLine.
     """
     # repo = FakeRepository.for_batch(BATCH_1, REAL_SKU, HIGH_NUM, eta=None)
-    repo, session = FakeRepository([]), FakeSession()
-    services.add_batch(BATCH_1, REAL_SKU, HIGH_NUM, None, repo, session)
+    # repo, session = FakeRepository([]), FakeSession()
+    uow = FakeUnitOfWork()
+    services.add_batch(BATCH_1, REAL_SKU, HIGH_NUM, None, uow)
     result = services.allocate(
-        ORDER_1, REAL_SKU, LOW_NUM, repo, session)
+        ORDER_1, REAL_SKU, LOW_NUM, uow)
     assert result == BATCH_1
 
 def test_error_for_invalid_sku():

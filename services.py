@@ -14,21 +14,21 @@ def is_valid_sku(sku: str, batches: List[model.Batch]) -> bool:
     skus = {b.sku for b in batches}
     return sku in skus
 
-def add_batch(ref: str, sku: str, qty: int, eta: Optional[str], repo: AbstractRepository, session):
+def add_batch(ref: str, sku: str, qty: int, eta: Optional[str], uow):
     batch = model.Batch(ref, sku, qty, eta)
-    repo.add(batch)
-    session.commit()
+    uow.batches.add(batch)
+    uow.commit()
 
-def allocate(orderid:str, sku: str, qty: int, repo: AbstractRepository, session) -> str:
+def allocate(orderid:str, sku: str, qty: int, uow) -> str:
     """
     Obtains a list of Batches from data layer, validates OrderLine,
     calls the allocate domain service, and commits to database.
     """
-    batches = repo.list()
+    batches = uow.batches.list()
     if not is_valid_sku(sku, batches):
         raise InvalidSKU(f'Invalid SKU: {sku}')
     ref = model.allocate(orderid, sku, qty, batches)
-    session.commit()
+    uow.commit()
     return ref
 
 
