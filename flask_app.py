@@ -1,5 +1,5 @@
 from flask import Flask, jsonify, request
-from unit_of_work import SQLAlchemyUnitOfWork  # belongs to service
+import unit_of_work  # belongs to service
 import datetime
 
 import model
@@ -12,7 +12,7 @@ orm.start_mappers()  # needs to map on flask app load?
 
 @app.route("/allocate", methods=['POST'])
 def allocate_endpoint():
-    uow = SQLAlchemyUnitOfWork()
+    uow = unit_of_work.SQLAlchemyUnitOfWork()
 
     oid, sku, qty = (
         request.json['orderid'],
@@ -33,7 +33,7 @@ def allocate_endpoint():
 
 @app.route("/add_batch", methods=['POST'])
 def add_batch():
-    uow = SQLAlchemyUnitOfWork()
+    uow = unit_of_work.SQLAlchemyUnitOfWork()
 
     eta = request.json['eta']
     if eta is not None:
