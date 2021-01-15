@@ -56,13 +56,13 @@ def wait_for_postgres_to_come_up(engine):
 
 
 def wait_for_webapp_to_come_up():
-    deadline = time.time() + 15
+    deadline = time.time() + 10
     url = config.get_api_url()
     while time.time() < deadline:
         try:
             return requests.get(url)
         except ConnectionError:
-            time.sleep(0.7)
+            time.sleep(0.5)
     pytest.fail('API never came up')
 
 
@@ -81,46 +81,6 @@ def postgres_session(postgres_db):
     yield sessionmaker(bind=postgres_db)()
     clear_mappers()
 
-
-@pytest.fixture
-def add_stock(postgres_session):
-    batches_added = set()
-    skus_added = set()
-
-    def _add_stock(lines):
-        for ref, sku, qty, eta in lines:
-            postgres_session.execute(
-                'INSERT INTO batches (ref, sku, _qty, eta)'
-                ' VALUES (:ref, :sku, :qty, :eta)',
-                dict(ref=ref, sku=sku, qty=qty, eta=eta),
-            )
-            [[batch_id]] = postgres_session.execute(
-                'SELECT id FROM batches WHERE ref=:ref AND sku=:sku',
-                dict(ref=ref, sku=sku),
-            )
-            batches_added.add(batch_id)
-            skus_added.add(sku)
-        postgres_session.commit()
-
-    yield _add_stock
-
-    for batch_id in batches_added:
-        postgres_session.execute(
-            'DELETE FROM allocations WHERE batch_id=:batch_id',
-            dict(batch_id=batch_id),
-        )
-        postgres_session.execute(
-            'DELETE FROM batches WHERE id=:batch_id',
-            dict(batch_id=batch_id),
-        )
-    for sku in skus_added:
-        postgres_session.execute(
-            'DELETE FROM order_lines WHERE sku=:sku',
-            dict(sku=sku),
-        )
-        postgres_session.commit()
-
-
 @pytest.fixture
 def restart_api():
     # touch:
@@ -128,5 +88,5 @@ def restart_api():
     # function succeeds if exist_ok is true (and its modification time is
     # updated to the current time), otherwise FileExistsError is raised.
     (Path(__file__).parent / 'flask_app.py').touch()  # parent: the logical parent of the path
-    time.sleep(0.7)
+    time.sleep(0.5)
     wait_for_webapp_to_come_up()
