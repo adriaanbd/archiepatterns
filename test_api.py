@@ -33,8 +33,9 @@ def post_to_add_batch(ref, sku, qty, eta):
     )
     assert r.status_code == 201
 
+@pytest.mark.usefixtures('postgres_db')
 @pytest.mark.usefixtures('restart_api')
-def test_happy_path_returns_201_and_allocated_batch(add_stock):
+def test_happy_path_returns_201_and_allocated_batch():
     sku, othersku = random_sku('real'), random_sku('other')
 
     earlybatch = random_batchref(1)
@@ -48,7 +49,6 @@ def test_happy_path_returns_201_and_allocated_batch(add_stock):
     data = {'orderid': random_orderid(), 'sku': sku, 'qty': 3}
     url = config.get_api_url()
     r = requests.post(f'{url}/allocate', json=data)
-
 
     assert r.status_code == 201
     assert r.json()['batchref'] == earlybatch

@@ -1,30 +1,26 @@
 from flask import Flask, jsonify, request
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from unit_of_work import SQLAlchemyUnitOfWork  # belongs to service
 import datetime
 
-import config
 import model
 import orm
-import repository
 import services
 
 
-orm.start_mappers()
-get_session = sessionmaker(bind=create_engine(config.get_postgres_uri()))
 app = Flask(__name__)
+orm.start_mappers()  # needs to map on flask app load?
 
 @app.route("/allocate", methods=['POST'])
 def allocate_endpoint():
-    session = get_session()
-    repo = repository.SQLAlchemyRepository(session)
+    uow = SQLAlchemyUnitOfWork()
+
     oid, sku, qty = (
         request.json['orderid'],
         request.json['sku'],
         request.json['qty'],
     )
     try:
-        batchref = services.allocate(oid, sku, qty, repo, session)
+        batchref = services.allocate(oid, sku, qty, uow)
     except (
         model.OutOfStock,
         model.UnallocatedSKU,
@@ -37,12 +33,12 @@ def allocate_endpoint():
 
 @app.route("/add_batch", methods=['POST'])
 def add_batch():
-    session = get_session()
-    repo = repository.SQLAlchemyRepository(session)
+    uow = SQLAlchemyUnitOfWork()
+
     eta = request.json['eta']
     if eta is not None:
         eta = datetime.date.fromisoformat(eta)
     r, s, q = request.json['ref'], request.json['sku'], request.json['qty']
-    services.add_batch(r, s, q, eta, repo, session)
+    services.add_batch(r, s, q, eta, uow)
 
     return 'OK', 201
