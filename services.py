@@ -30,7 +30,7 @@ def allocate(orderid:str, sku: str, qty: int, uow) -> str:
             raise InvalidSKU(f'Invalid SKU: {sku}')
         ref = model.allocate(orderid, sku, qty, batches)
         uow.commit()
-        return ref
+    return ref
 
 
 def deallocate(orderid:str, sku: str, qty: int, ref: str, uow):

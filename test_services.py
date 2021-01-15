@@ -1,6 +1,7 @@
 from conftest import session  # is this session being used?
 import pytest
 from repository import AbstractRepository
+from unit_of_work import AbstractUnitOfWork
 import model
 import services
 from typing import List
@@ -37,7 +38,7 @@ class FakeSession():
         self.committed = True
 
 
-class FakeUnitOfWork():
+class FakeUnitOfWork(AbstractUnitOfWork):
     def __init__(self) -> None:
         self.batches = FakeRepository([])
         self.committed = False
@@ -47,6 +48,7 @@ class FakeUnitOfWork():
 
     def rollback(self):
         pass
+
 
 ORDER_1, BATCH_1 = "O1", "B1"
 REAL_SKU, UNREAL_SKU = "SKU_EXISTS", "SKU_DOESNT_EXIST"
@@ -66,6 +68,7 @@ later = tomorrow + timedelta(days=10)
 
 def test_add_batch():
     uow = FakeUnitOfWork()
+
     services.add_batch(BATCH_1, REAL_SKU, 100, None, uow)
     assert uow.batches.get(BATCH_1) is not None
     assert uow.committed
@@ -75,6 +78,7 @@ def test_returns_allocation():
     Tests that the allocation service is able to allocate an OrderLine.
     """
     uow = FakeUnitOfWork()
+
     services.add_batch(BATCH_1, REAL_SKU, HIGH_NUM, None, uow)
     result = services.allocate(
         ORDER_1, REAL_SKU, LOW_NUM, uow)
@@ -82,18 +86,21 @@ def test_returns_allocation():
 
 def test_error_for_invalid_sku():
     uow = FakeUnitOfWork()
+
     services.add_batch(BATCH_1, REAL_SKU, HIGH_NUM, None, uow)
     with pytest.raises(services.InvalidSKU, match=f"Invalid SKU: {UNREAL_SKU}"):
         services.allocate(ORDER_1, UNREAL_SKU, LOW_NUM, uow)
 
 def test_commits():
     uow = FakeUnitOfWork()
+
     services.add_batch(BATCH_1, REAL_SKU, HIGH_NUM, None, uow)
     services.allocate(ORDER_1, REAL_SKU, LOW_NUM, uow)
     assert uow.committed is True
 
 def test_deallocate_decrements_available_quantity():
     uow = FakeUnitOfWork()
+
 
     services.add_batch(BATCH_1, REAL_SKU, HIGH_NUM, None, uow)
     batch_ref = services.allocate(ORDER_1, REAL_SKU, LOW_NUM, uow)
@@ -104,6 +111,8 @@ def test_deallocate_decrements_available_quantity():
 
 def test_trying_to_deallocate_unallocated_sku():
     uow = FakeUnitOfWork()
+
+
     services.add_batch(BATCH_1, REAL_SKU, HIGH_NUM, None, uow)
 
     with pytest.raises(model.UnallocatedSKU, match=f"Unallocated SKU: {UNREAL_SKU}"):
@@ -111,6 +120,7 @@ def test_trying_to_deallocate_unallocated_sku():
 
 def test_prefers_current_stock_batches_to_shipments():
     uow = FakeUnitOfWork()
+
 
     services.add_batch(IN_STOCK, CLOCK, 100, today, uow)
     services.add_batch(SHIPMENT, CLOCK, 100, tomorrow, uow)
@@ -139,12 +149,14 @@ def test_prefer_earlier_batches():
 def test_returns_allocated_batch_ref():
     uow = FakeUnitOfWork()
 
+
     services.add_batch("in-stock-batch-ref", POSTER, 100, None, uow)
     services.add_batch("shipment-batch-ref", POSTER, 100, tomorrow, uow)
 
 
     allocation = services.allocate(OREF, POSTER, 10, uow)
     assert allocation == "in-stock-batch-ref"
+
 
 def test_raises_out_of_stock_exception_if_cannot_allocate():
     uow = FakeUnitOfWork()
@@ -159,6 +171,7 @@ def test_raises_out_of_stock_exception_if_cannot_allocate():
 def test_does_allocate_if_available_greater_than_required():
     uow = FakeUnitOfWork()
 
+
     services.add_batch(BATCH_REF, SKU, GREATER, None, uow)
     ref = services.allocate(ORDER_REF, SKU, QUANTITY, uow)
 
@@ -168,7 +181,6 @@ def test_does_allocate_if_available_greater_than_required():
 def test_doesnt_allocate_if_available_smaller_than_required():
     uow = FakeUnitOfWork()
 
-
     services.add_batch(BATCH_REF, SKU, QUANTITY, None, uow)
     ref = services.allocate(ORDER_REF, SKU, SMALLER, uow)
 
@@ -176,11 +188,10 @@ def test_doesnt_allocate_if_available_smaller_than_required():
         services.allocate(ORDER_REF, SKU, QUANTITY, uow)
     except model.OutOfStock:
         batch = uow.batches.get(ref)
-        assert batch.available_qty == QUANTITY - SMALLER
+    assert batch.available_qty == QUANTITY - SMALLER
 
 def test_does_allocate_if_available_equal_to_required():
     uow = FakeUnitOfWork()
-
 
     services.add_batch(BATCH_REF, SKU, QUANTITY, None, uow)
     ref = services.allocate(ORDER_1, SKU, QUANTITY, uow)
@@ -196,7 +207,7 @@ def test_doesnt_allocate_if_skus_do_not_match():
         services.allocate(ORDER_REF, UNREAL_SKU, SMALLER, uow)
     except services.InvalidSKU or model.UnallocatedSKU:
         batch = uow.batches.get(ref)
-        assert batch.available_qty == QUANTITY - SMALLER
+    assert batch.available_qty == QUANTITY - SMALLER
 
 def test_can_only_deallocate_allocated_lines():
     uow = FakeUnitOfWork()
@@ -210,7 +221,6 @@ def test_can_only_deallocate_allocated_lines():
 
 def test_allocation_is_idempotent():
     uow = FakeUnitOfWork()
-
     services.add_batch(BATCH_REF, SKU, QUANTITY, None, uow)
     services.allocate(ORDER_REF, SKU, SMALLER, uow)
     services.allocate(ORDER_REF, SKU, SMALLER, uow)
