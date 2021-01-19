@@ -227,3 +227,12 @@ def test_allocation_is_idempotent():
 
     batch = uow.batches.get(BATCH_REF)
     assert batch.available_qty == QUANTITY - SMALLER
+
+def test_change_batch_qty():
+    uow = FakeUnitOfWork()
+    services.add_batch(BATCH_REF, REAL_SKU, 100, None, uow)
+    services.allocate(ORDER_REF, REAL_SKU, 70, uow)
+    batch = uow.batches.get(BATCH_REF)
+    assert batch.available_qty == 100 - 70
+    services.change_batch_quantity(BATCH_REF, 30, uow)
+    assert batch.available_qty > 0

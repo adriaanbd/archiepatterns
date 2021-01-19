@@ -1,3 +1,4 @@
+from unit_of_work import AbstractUnitOfWork
 import model
 from typing import List, Optional
 
@@ -37,4 +38,21 @@ def deallocate(orderid:str, sku: str, qty: int, ref: str, uow):
     with uow:
         batch: model.Batch = uow.batches.get(ref)
         batch.deallocate(orderid, sku, qty)
+        uow.commit()
+
+def reallocate(line: model.OrderLine, uow: AbstractUnitOfWork) -> str:
+    with uow:
+        batch = uow.batches.get(sku=line.sku)
+        if batch is None:
+            raise InvalidSKU(f'Invalid sky {line.sku}')
+        batch.deallocate(line)  # if this fails we don't allocate
+        allocate(line)  # if this fails we don't deallocate either
+        uow.commit()
+
+def change_batch_quantity(batchref, new_qty, uow):
+    with uow:
+        batch = uow.batches.get(ref=batchref)
+        batch.change_purchased_quantity(new_qty)
+        while batch.available_qty < 0:
+            batch.deallocate_one()
         uow.commit()

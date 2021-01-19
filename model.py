@@ -78,6 +78,12 @@ class Batch:
             raise UnallocatedSKU(f'Unallocated SKU: {sku}')
         self._allocations.remove(line)
 
+    def deallocate_one(self):
+        return self._allocations.pop()
+
+    def change_purchased_quantity(self, new_qty):
+        self._qty = new_qty
+
     @property
     def allocated_qty(self) -> int:
         """Agregates the quantity of all allocated Order Lines
