@@ -1,4 +1,4 @@
-from model import OrderLine
+from allocation.domain import model
 
 ORDER_1 = "order1"
 ORDER_2 = "order2"
@@ -18,14 +18,14 @@ def test_orderline_mapper_can_load_lines(session):
         f'("{ORDER_2}", "{LIPSTICK}", {QUANTITY + 2})'
     )
     expected = [
-        OrderLine(ORDER_1, CHAIR, TWELVE),
-        OrderLine(ORDER_1, TABLE, THIRTEEN),
-        OrderLine(ORDER_2, LIPSTICK, FOURTEEN)
+        model.OrderLine(ORDER_1, CHAIR, TWELVE),
+        model.OrderLine(ORDER_1, TABLE, THIRTEEN),
+        model.OrderLine(ORDER_2, LIPSTICK, FOURTEEN)
     ]
-    assert session.query(OrderLine).all() == expected
+    assert session.query(model.OrderLine).all() == expected
 
 def test_orderline_mapper_can_save_lines(session):
-    new_line = OrderLine(ORDER_1, WIDGET, TWELVE)
+    new_line = model.OrderLine(ORDER_1, WIDGET, TWELVE)
     session.add(new_line)
     session.commit()
     rows = list(
