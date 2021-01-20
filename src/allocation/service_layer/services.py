@@ -1,5 +1,5 @@
-from unit_of_work import AbstractUnitOfWork
-import model
+from allocation.service_layer import unit_of_work
+from allocation.domain import model
 from typing import List, Optional
 
 
@@ -40,7 +40,7 @@ def deallocate(orderid:str, sku: str, qty: int, ref: str, uow):
         batch.deallocate(orderid, sku, qty)
         uow.commit()
 
-def reallocate(line: model.OrderLine, uow: AbstractUnitOfWork) -> str:
+def reallocate(line: model.OrderLine, uow: unit_of_work.AbstractUnitOfWork) -> str:
     with uow:
         batch = uow.batches.get(sku=line.sku)
         if batch is None:

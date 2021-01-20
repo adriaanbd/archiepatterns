@@ -1,14 +1,13 @@
 from flask import Flask, jsonify, request
-import unit_of_work  # belongs to service
 import datetime
 
-import model
-import orm
-import services
+from allocation.domain import model
+from allocation.adapters import orm
+from allocation.service_layer import services, unit_of_work
 
 
 app = Flask(__name__)
-orm.start_mappers()  # needs to map on flask app load?
+orm.start_mappers()
 
 @app.route("/allocate", methods=['POST'])
 def allocate_endpoint():

@@ -1,14 +1,14 @@
 from abc import ABC, abstractmethod
-from model import Batch
+from allocation.domain import model
 
 class AbstractRepository(ABC):
 
     @abstractmethod
-    def add(self, batch: Batch):
+    def add(self, batch: model.Batch):
         raise NotImplementedError
 
     @abstractmethod
-    def get(self, reference) -> Batch:
+    def get(self, reference) -> model.Batch:
         raise NotImplementedError
 
 class SQLAlchemyRepository(AbstractRepository):
@@ -22,9 +22,9 @@ class SQLAlchemyRepository(AbstractRepository):
         # ddbb on the next flush operation
 
     def get(self, reference):
-        return self.session.query(Batch).filter_by(
+        return self.session.query(model.Batch).filter_by(
             ref=reference).one()
 
     def list(self):
-        return self.session.query(Batch).all()
+        return self.session.query(model.Batch).all()
 
