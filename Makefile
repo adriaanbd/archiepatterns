@@ -5,7 +5,7 @@ up:
 	docker-compose up -d app
 
 test:
-	pytest src --tb=short
+	pytest --tb=short
 
 logs:
 	docker-compose logs app | tail -100
