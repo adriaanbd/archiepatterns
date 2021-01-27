@@ -11,8 +11,8 @@ RUN apk del --no-cache .build-deps
 RUN mkdir -p /src
 COPY src/ /src/
 RUN pip install -e /src
-COPY src/allocation src/allocation/
-COPY src/allocation.egg-info src/allocation.egg-info/
+COPY src/allocation/ src/allocation/
+COPY src/allocation.egg-info/ src/allocation.egg-info/
 COPY tests/ /tests/
 
 WORKDIR /src
