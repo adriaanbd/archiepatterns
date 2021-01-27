@@ -1,5 +1,5 @@
 build:
-	echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+	echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
 	docker-compose build
 
 up:
