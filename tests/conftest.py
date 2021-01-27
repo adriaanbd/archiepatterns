@@ -5,12 +5,13 @@ from pathlib import Path
 import pytest
 import requests
 from requests.exceptions import ConnectionError
+
 from sqlalchemy.exc import OperationalError
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, clear_mappers
-from orm import metadata, start_mappers
 
-import config
+from allocation.adapters import orm
+from allocation import config
 
 
 @pytest.fixture
@@ -19,7 +20,7 @@ def in_memory_db():
     # behavior by connecting a Pool and Dialect object together
     engine = create_engine('sqlite:///:memory:')
     # https://docs.sqlalchemy.org/en/13/core/metadata.html#metadata-describing
-    metadata.create_all(engine)  # checks existence of each table, and
+    orm.metadata.create_all(engine)  # checks existence of each table, and
     # if not found, issues CREATE statements for all tables stored herein
     # will not attempt to recreate tables by default.
     # first argument is bind that accepts a Connectable object, which can be:
@@ -29,7 +30,7 @@ def in_memory_db():
 
 @pytest.fixture
 def session_factory(in_memory_db):
-    start_mappers()
+    orm.start_mappers()
     # factory to generate new Session objects:
     # https://docs.sqlalchemy.org/en/14/orm/session_api.html#sqlalchemy.orm.sessionmaker
     yield sessionmaker(bind=in_memory_db)  # bind the session to a connection
@@ -71,13 +72,13 @@ def wait_for_webapp_to_come_up():
 def postgres_db():
     engine = create_engine(config.get_postgres_uri())
     wait_for_postgres_to_come_up(engine)
-    metadata.create_all(engine)
+    orm.metadata.create_all(engine)
     return engine
 
 
 @pytest.fixture
 def postgres_session(postgres_db):
-    start_mappers()
+    orm.start_mappers()
     yield sessionmaker(bind=postgres_db)()
     clear_mappers()
 

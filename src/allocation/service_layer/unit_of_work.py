@@ -1,9 +1,10 @@
 from __future__ import annotations
-import repository
-import config
+import abc
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-import abc
+
+from allocation import config
+from allocation.adapters import repository
 
 DEFAULT_SESSION_FACTORY = sessionmaker(bind=create_engine(
     config.get_postgres_uri(),
@@ -38,7 +39,6 @@ class SQLAlchemyUnitOfWork(AbstractUnitOfWork):
         return super().__enter__()
 
     def __exit__(self, *args):
-        print(*args)
         super().__exit__(*args)
         self.session.close()
 

@@ -1,5 +1,5 @@
-from repository import SQLAlchemyRepository
-from model import Batch, OrderLine
+from allocation.adapters import repository
+from allocation.domain import model
 
 BATCH_1 = "batch1"
 BATCH_2 = "batch2"
@@ -11,8 +11,8 @@ TWELVE = 12
 HUNDRED = 100
 
 def test_repository_can_save_a_batch(session):
-    batch = Batch(BATCH_1, SOAP, HUNDRED, eta=None)
-    repo = SQLAlchemyRepository(session)
+    batch = model.Batch(BATCH_1, SOAP, HUNDRED, eta=None)
+    repo = repository.SQLAlchemyRepository(session)
     repo.add(batch)  # method under test
     # https://docs.sqlalchemy.org/en/13/orm/session_basics.html#committing
     session.commit()  # separate from repository (intentional), it
@@ -62,15 +62,15 @@ def test_repository_can_retrieve_a_batch_with_allocations(session):
     insert_batch(session, BATCH_2)
     insert_allocation(session, orderline_id, batch1_id)
 
-    repo = SQLAlchemyRepository(session)
+    repo = repository.SQLAlchemyRepository(session)
     retrieved = repo.get(BATCH_1)  # tests the read side
 
-    expected = Batch(BATCH_1, SOFA, HUNDRED, eta=None)
+    expected = model.Batch(BATCH_1, SOFA, HUNDRED, eta=None)
     assert retrieved == expected  # tests object equality
     assert retrieved.sku == expected.sku
     assert retrieved._qty == expected._qty
     assert retrieved._allocations == {
-        OrderLine(ORDER_1, SOFA, TWELVE),
+        model.OrderLine(ORDER_1, SOFA, TWELVE),
     }
 
 def get_allocations(session, batchid):
@@ -86,12 +86,12 @@ def get_allocations(session, batchid):
 
 
 def test_updating_a_batch(session):
-    order1 = OrderLine(ORDER_1, BENCH, 10)
-    order2 = OrderLine('order2', BENCH, 20)
-    batch = Batch(BATCH_1, BENCH, 100, eta=None)
+    order1 = model.OrderLine(ORDER_1, BENCH, 10)
+    order2 = model.OrderLine('order2', BENCH, 20)
+    batch = model.Batch(BATCH_1, BENCH, 100, eta=None)
     batch.allocate(order1)
 
-    repo = SQLAlchemyRepository(session)
+    repo = repository.SQLAlchemyRepository(session)
     repo.add(batch)
     session.commit()
 

@@ -1,13 +1,12 @@
-from conftest import session  # is this session being used?
 import pytest
-from repository import AbstractRepository
-from unit_of_work import AbstractUnitOfWork
-import model
-import services
+from allocation.domain import model
+from allocation.adapters import repository
+from allocation.service_layer import services
+from allocation.service_layer import unit_of_work
 from typing import List
 from datetime import date, timedelta
 
-class FakeRepository(AbstractRepository):
+class FakeRepository(repository.AbstractRepository):
 
     def __init__(self, batches):
         self._batches = set(batches)
@@ -38,7 +37,7 @@ class FakeSession():
         self.committed = True
 
 
-class FakeUnitOfWork(AbstractUnitOfWork):
+class FakeUnitOfWork(unit_of_work.AbstractUnitOfWork):
     def __init__(self) -> None:
         self.batches = FakeRepository([])
         self.committed = False
@@ -101,7 +100,6 @@ def test_commits():
 def test_deallocate_decrements_available_quantity():
     uow = FakeUnitOfWork()
 
-
     services.add_batch(BATCH_1, REAL_SKU, HIGH_NUM, None, uow)
     batch_ref = services.allocate(ORDER_1, REAL_SKU, LOW_NUM, uow)
 
@@ -112,7 +110,6 @@ def test_deallocate_decrements_available_quantity():
 def test_trying_to_deallocate_unallocated_sku():
     uow = FakeUnitOfWork()
 
-
     services.add_batch(BATCH_1, REAL_SKU, HIGH_NUM, None, uow)
 
     with pytest.raises(model.UnallocatedSKU, match=f"Unallocated SKU: {UNREAL_SKU}"):
@@ -120,7 +117,6 @@ def test_trying_to_deallocate_unallocated_sku():
 
 def test_prefers_current_stock_batches_to_shipments():
     uow = FakeUnitOfWork()
-
 
     services.add_batch(IN_STOCK, CLOCK, 100, today, uow)
     services.add_batch(SHIPMENT, CLOCK, 100, tomorrow, uow)
@@ -133,7 +129,6 @@ def test_prefers_current_stock_batches_to_shipments():
 
 def test_prefer_earlier_batches():
     uow = FakeUnitOfWork()
-
 
     services.add_batch(SPEEDY, SPOON, 100, today, uow)
     services.add_batch(NORMAL, SPOON, 100, tomorrow, uow)
@@ -149,7 +144,6 @@ def test_prefer_earlier_batches():
 def test_returns_allocated_batch_ref():
     uow = FakeUnitOfWork()
 
-
     services.add_batch("in-stock-batch-ref", POSTER, 100, None, uow)
     services.add_batch("shipment-batch-ref", POSTER, 100, tomorrow, uow)
 
@@ -157,10 +151,8 @@ def test_returns_allocated_batch_ref():
     allocation = services.allocate(OREF, POSTER, 10, uow)
     assert allocation == "in-stock-batch-ref"
 
-
 def test_raises_out_of_stock_exception_if_cannot_allocate():
     uow = FakeUnitOfWork()
-
 
     services.add_batch(BATCH1, FORK, 10, today, uow)
     services.allocate(ORDER1, FORK, 10, uow)
@@ -170,7 +162,6 @@ def test_raises_out_of_stock_exception_if_cannot_allocate():
 
 def test_does_allocate_if_available_greater_than_required():
     uow = FakeUnitOfWork()
-
 
     services.add_batch(BATCH_REF, SKU, GREATER, None, uow)
     ref = services.allocate(ORDER_REF, SKU, QUANTITY, uow)
@@ -184,6 +175,7 @@ def test_doesnt_allocate_if_available_smaller_than_required():
     services.add_batch(BATCH_REF, SKU, QUANTITY, None, uow)
     ref = services.allocate(ORDER_REF, SKU, SMALLER, uow)
 
+    batch = None
     try:
         services.allocate(ORDER_REF, SKU, QUANTITY, uow)
     except model.OutOfStock:
@@ -203,21 +195,25 @@ def test_doesnt_allocate_if_skus_do_not_match():
 
     services.add_batch(BATCH_REF, REAL_SKU, QUANTITY, None, uow)
     ref = services.allocate(ORDER_REF, REAL_SKU, SMALLER, uow)
+    batch = None  # avoid batch being possibly unbound
     try:
         services.allocate(ORDER_REF, UNREAL_SKU, SMALLER, uow)
     except services.InvalidSKU or model.UnallocatedSKU:
         batch = uow.batches.get(ref)
+
     assert batch.available_qty == QUANTITY - SMALLER
 
 def test_can_only_deallocate_allocated_lines():
     uow = FakeUnitOfWork()
 
     services.add_batch(BATCH_REF, REAL_SKU, QUANTITY, None, uow)
+    batch = None  # avoid batch being possibly unbound
     try:
         services.deallocate(ORDER_REF, SKU, SMALLER, BATCH_REF, uow)
     except model.UnallocatedSKU:
         batch = uow.batches.get(BATCH_REF)
-        assert batch.available_qty == QUANTITY
+
+    assert batch.available_qty == QUANTITY
 
 def test_allocation_is_idempotent():
     uow = FakeUnitOfWork()
@@ -226,13 +222,18 @@ def test_allocation_is_idempotent():
     services.allocate(ORDER_REF, SKU, SMALLER, uow)
 
     batch = uow.batches.get(BATCH_REF)
+
     assert batch.available_qty == QUANTITY - SMALLER
 
 def test_change_batch_qty():
     uow = FakeUnitOfWork()
+
     services.add_batch(BATCH_REF, REAL_SKU, 100, None, uow)
     services.allocate(ORDER_REF, REAL_SKU, 70, uow)
+
     batch = uow.batches.get(BATCH_REF)
     assert batch.available_qty == 100 - 70
+
     services.change_batch_quantity(BATCH_REF, 30, uow)
+
     assert batch.available_qty > 0
