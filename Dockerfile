@@ -4,17 +4,15 @@ RUN apk add --no-cache --virtual .build-deps gcc postgresql-dev musl-dev python3
 RUN apk add libpq
 
 COPY requirements.txt /tmp
+RUN pip install --upgrade pip
 RUN pip install -r /tmp/requirements.txt
 
 RUN apk del --no-cache .build-deps
 
 RUN mkdir -p /src
 COPY src/ /src/
-RUN pip install -e /src
-COPY src/allocation/ src/allocation/
-COPY src/allocation.egg-info/ src/allocation.egg-info/
-COPY tests/ /tests/
+COPY tests/ src/tests/
+RUN pip install -e src/
 
-WORKDIR /src
-ENV FLASK_APP=allocation/entrypoints/flask_app.py FLASK_DEBUG=1 PYTHONUNBUFFERED=1
+ENV FLASK_APP=src/allocation/entrypoints/flask_app.py FLASK_DEBUG=1 PYTHONUNBUFFERED=1
 CMD flask run --host=0.0.0.0 --port=80
