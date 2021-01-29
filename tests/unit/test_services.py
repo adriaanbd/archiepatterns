@@ -8,20 +8,20 @@ from datetime import date, timedelta
 
 class FakeRepository(repository.AbstractRepository):
 
-    def __init__(self, batches):
-        self._batches = set(batches)
+    def __init__(self, products):
+        self._products = set(products)
 
     def add(self, batch: model.Batch) -> None:
-        self._batches.add(batch)
+        self._products.add(batch)
 
-    def get(self, ref: model.Ref) -> model.Batch:
+    def get(self, sku: model.Sku) -> model.Batch:
         try:
-            return next(b for b in self._batches if b.ref == ref)
+            return next((b for b in self._products if b.sku == sku), None)
         except StopIteration:
-            raise model.UnallocatedSKU(f'Unallocated SKU: {ref}')
+            raise model.UnallocatedSKU(f'Unallocated SKU: {sku}')
 
     def list(self) -> List[model.Batch]:
-        return list(self._batches)
+        return list(self._products)
 
     @staticmethod
     def for_batch(ref, sku, qty, eta=None):
@@ -39,7 +39,7 @@ class FakeSession():
 
 class FakeUnitOfWork(unit_of_work.AbstractUnitOfWork):
     def __init__(self) -> None:
-        self.batches = FakeRepository([])
+        self.products = FakeRepository([])
         self.committed = False
 
     def commit(self):
@@ -69,7 +69,7 @@ def test_add_batch():
     uow = FakeUnitOfWork()
 
     services.add_batch(BATCH_1, REAL_SKU, 100, None, uow)
-    assert uow.batches.get(BATCH_1) is not None
+    assert uow.products.get(REAL_SKU) is not None
     assert uow.committed
 
 def test_returns_allocation():
