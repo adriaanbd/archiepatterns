@@ -17,7 +17,11 @@ def is_valid_sku(sku: str, batches: List[model.Batch]) -> bool:
 def add_batch(ref: str, sku: str, qty: int, eta: Optional[str], uow):
     batch = model.Batch(ref, sku, qty, eta)
     with uow:
-        uow.batches.add(batch)
+        product = uow.products.get(sku)
+        if product is None:
+            product = model.Product(sku, batches=[])
+            uow.products.add(batch)
+        product.batches.append(batch)
         uow.commit()
 
 def allocate(orderid:str, sku: str, qty: int, uow) -> str:
@@ -26,10 +30,10 @@ def allocate(orderid:str, sku: str, qty: int, uow) -> str:
     calls the allocate domain service, and commits to database.
     """
     with uow:
-        batches = uow.batches.list()
-        if not is_valid_sku(sku, batches):
+        product = uow.products.get(sku)
+        if product is None:
             raise InvalidSKU(f'Invalid SKU: {sku}')
-        ref = model.allocate(orderid, sku, qty, batches)
+        ref = product.allocate(orderid, sku, qty)
         uow.commit()
     return ref
 

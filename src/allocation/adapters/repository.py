@@ -4,15 +4,14 @@ from allocation.domain import model
 class AbstractRepository(ABC):
 
     @abstractmethod
-    def add(self, batch: model.Batch):
+    def add(self, products: model.Product):
         raise NotImplementedError
 
     @abstractmethod
-    def get(self, reference) -> model.Batch:
+    def get(self, sku) -> model.Product:
         raise NotImplementedError
 
 class SQLAlchemyRepository(AbstractRepository):
-
     def __init__(self, session):
         self.session = session
 

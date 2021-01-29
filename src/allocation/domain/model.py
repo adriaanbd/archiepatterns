@@ -133,6 +133,30 @@ class Batch:
         return self.eta > other.eta
 
 
+class Product:
+    def __init__(self, sku: Sku, batches: List[Batch]):
+        self.sku = sku
+        self.batches = batches
+
+    # a Domain Service
+    def allocate(orderid: OrderId, sku: Sku, qty: Qty) -> str:
+        """
+        Domain Service to allocate order lines against a list of batches
+        """
+        assert len(batches) > 0, "At least 1 batch is needed"
+        line = OrderLine(orderid, sku, qty)
+        try:
+            batch = next(
+                b for b in sorted(self.batches)
+                if b.can_allocate(line)
+            )
+            batch.allocate(line)
+            return batch.ref
+        except StopIteration:
+            raise OutOfStock(f'Out of stock for {line.sku}')
+
+
+
 # a Domain Excepction
 class OutOfStock(Exception):
     pass
@@ -140,20 +164,5 @@ class OutOfStock(Exception):
 class UnallocatedSKU(Exception):
     pass
 
-# a Domain Service
-def allocate(orderid: OrderId, sku: Sku, qty: Qty, batches: List[Batch]) -> str:
-    """
-    Domain Service to allocate order lines against a list of batches
-    """
-    assert len(batches) > 0, "At least 1 batch is needed"
-    line = OrderLine(orderid, sku, qty)
-    try:
-        batch = next(
-            b for b in sorted(batches)
-            if b.can_allocate(line)
-        )
-        batch.allocate(line)
-        return batch.ref
-    except StopIteration:
-        raise OutOfStock(f'Out of stock for {line.sku}')
+
 
