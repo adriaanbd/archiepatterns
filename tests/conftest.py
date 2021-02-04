@@ -27,7 +27,6 @@ def in_memory_db():
     # Connection and Engine objects.
     return engine
 
-
 @pytest.fixture
 def session_factory(in_memory_db):
     orm.start_mappers()
@@ -55,7 +54,6 @@ def wait_for_postgres_to_come_up(engine):
             time.sleep(0.7)
     pytest.fail('Postgres never came up')
 
-
 def wait_for_webapp_to_come_up():
     deadline = time.time() + 10
     url = config.get_api_url()
@@ -66,8 +64,6 @@ def wait_for_webapp_to_come_up():
             time.sleep(0.5)
     pytest.fail('API never came up')
 
-
-
 @pytest.fixture(scope='session')
 def postgres_db():
     engine = create_engine(config.get_postgres_uri())
@@ -75,12 +71,15 @@ def postgres_db():
     orm.metadata.create_all(engine)
     return engine
 
-
 @pytest.fixture
-def postgres_session(postgres_db):
+def postgres_session_factory(postgres_db):
     orm.start_mappers()
     yield sessionmaker(bind=postgres_db)()
     clear_mappers()
+
+@pytest.fixture
+def postgres_session(postgres_db):
+    return postgres_session_factory()
 
 @pytest.fixture
 def restart_api():
