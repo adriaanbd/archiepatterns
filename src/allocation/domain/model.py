@@ -138,12 +138,11 @@ class Product:
         self.sku = sku
         self.batches = batches
 
-    # a Domain Service
-    def allocate(orderid: OrderId, sku: Sku, qty: Qty) -> str:
+    def allocate(self, orderid: OrderId, sku: Sku, qty: Qty) -> str:
         """
         Domain Service to allocate order lines against a list of batches
         """
-        assert len(batches) > 0, "At least 1 batch is needed"
+        assert len(self.batches) > 0, "At least 1 batch is needed"
         line = OrderLine(orderid, sku, qty)
         try:
             batch = next(
@@ -154,6 +153,9 @@ class Product:
             return batch.ref
         except StopIteration:
             raise OutOfStock(f'Out of stock for {line.sku}')
+    
+    def __repr__(self):
+        return f'<Product {self.sku}>'
 
 
 
