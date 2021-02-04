@@ -20,11 +20,11 @@ def add_batch(ref: str, sku: str, qty: int, eta: Optional[str], uow):
         product = uow.products.get(sku)
         if product is None:
             product = model.Product(sku, batches=[])
-            uow.products.add(batch)
+            uow.products.add(product)
         product.batches.append(batch)
         uow.commit()
 
-def allocate(orderid:str, sku: str, qty: int, uow) -> str:
+def allocate(orderid:str, sku: str, qty: int, uow: unit_of_work.AbstractUnitOfWork) -> str:
     """
     Obtains a list of Batches from data layer, validates OrderLine,
     calls the allocate domain service, and commits to database.
