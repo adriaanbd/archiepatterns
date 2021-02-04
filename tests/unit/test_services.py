@@ -23,12 +23,6 @@ class FakeRepository(repository.AbstractRepository):
     def list(self) -> List[model.Batch]:
         return list(self._products)
 
-    @staticmethod
-    def for_batch(ref, sku, qty, eta=None):
-        """Factory for making a Repository with a Batch."""
-        repo = FakeRepository([model.Batch(ref, sku, qty, eta)])
-        return repo
-
 
 class FakeSession():
     committed = False
