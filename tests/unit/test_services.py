@@ -69,7 +69,7 @@ def test_returns_allocation():
         ORDER_1, REAL_SKU, LOW_NUM, uow)
     assert result == BATCH_1
 
-@pytest.mark.skip
+
 def test_error_for_invalid_sku():
     uow = FakeUnitOfWork()
 
@@ -77,7 +77,7 @@ def test_error_for_invalid_sku():
     with pytest.raises(services.InvalidSKU, match=f"Invalid SKU: {UNREAL_SKU}"):
         services.allocate(ORDER_1, UNREAL_SKU, LOW_NUM, uow)
 
-@pytest.mark.skip
+
 def test_commits():
     uow = FakeUnitOfWork()
 
